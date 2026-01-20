@@ -3,7 +3,8 @@ package main
 import (
 	"log"
 	"net"
-	"handlers/handlers"
+	"ingest/handlers"
+	"ingest/config"
 
 	"google.golang.org/grpc"
 	otelcollogs "go.opentelemetry.io/proto/otlp/collector/logs/v1"
