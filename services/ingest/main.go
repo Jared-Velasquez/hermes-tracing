@@ -15,6 +15,8 @@ import (
 // Note: likely that we will only need traces to construct call graph
 
 func main() {
+	cfg := config.LoadConfig()
+
 	listener, err := net.Listen("tcp", ":4317")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
@@ -23,9 +25,9 @@ func main() {
 	// Create a new gRPC server and connect OTLP services
 	grpcServer := grpc.NewServer()
 
-	traceServer := handlers.NewTraceServer()
-	metricsServer := handlers.NewMetricsServer()
-	logsServer := handlers.NewLogsServer()
+	traceServer := handlers.NewTraceServer(cfg)
+	metricsServer := handlers.NewMetricsServer(cfg)
+	logsServer := handlers.NewLogsServer(cfg)
 
 	otelcoltrace.RegisterTraceServiceServer(grpcServer, traceServer)
 	otelcolmetrics.RegisterMetricsServiceServer(grpcServer, metricsServer)
