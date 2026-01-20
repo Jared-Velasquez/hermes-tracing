@@ -9,20 +9,20 @@ type Config struct {
 }
 
 type KafkaConfig struct {
-	Brokers string // comma-separated list of broker addresses
+	Broker string // comma-separated list of broker addresses
 	LogsTopic	 string
 	MetricsTopic string
-	TracesTopics string
+	TracesTopic string
 	GroupID string
 }
 
 func LoadConfig() *Config {
 	return &Config {
 		Kafka: KafkaConfig {
-			Brokers: getEnv("KAFKA_BROKERS", "localhost:9092"),
+			Broker: getEnv("KAFKA_BROKERS", "localhost:9092"),
 			LogsTopic: getEnv("KAFKA_LOGS_TOPIC", "logs"),
 			MetricsTopic: getEnv("KAFKA_METRICS_TOPIC", "metrics"),
-			TracesTopics: getEnv("KAFKA_TRACES_TOPIC", "traces"),
+			TracesTopic: getEnv("KAFKA_TRACES_TOPIC", "traces"),
 			GroupID: getEnv("KAFKA_GROUP_ID", "analytics-consumer-group"),
 		},
 	}
