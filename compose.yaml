@@ -34,3 +34,42 @@ services:
         /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic logs --partitions 1 --replication-factor 1
         /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic traces --partitions 1 --replication-factor 1
         echo "Topics created successfully"
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.6.2
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    networks:
+      - hermes-net
+    restart: unless-stopped
+  
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.6.2
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - hermes-net
+    restart: unless-stopped
+
+volumes:
+  esdata:
+    driver: local
+
+networks:
+  hermes-net:
+    driver: bridge
