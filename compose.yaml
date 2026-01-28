@@ -1,3 +1,7 @@
+networks:
+  observability:
+    external: true
+
 services:
   kafka:
     image: apache/kafka:3.7.0
@@ -21,6 +25,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - observability
 
   kafka-init:
     image: apache/kafka:3.7.0
@@ -34,6 +40,34 @@ services:
         /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic logs --partitions 1 --replication-factor 1
         /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic traces --partitions 1 --replication-factor 1
         echo "Topics created successfully"
+    networks:
+      - observability
+
+  ingest:
+    build:
+      context: ./services/ingest
+    ports:
+      - "4317:4317"
+    environment:
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    networks:
+      - observability
+    restart: unless-stopped
+
+  analytics:
+    build:
+      context: ./services/analytics
+    environment:
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    networks:
+      - observability
+    restart: unless-stopped
 
   # elasticsearch:
   #   image: docker.elastic.co/elasticsearch/elasticsearch:8.6.2

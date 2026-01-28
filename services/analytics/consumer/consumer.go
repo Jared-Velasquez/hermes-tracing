@@ -27,6 +27,7 @@ func NewConsumer(broker, topic, groupID string) *Consumer {
 }
 
 func (c *Consumer) Consume(ctx context.Context, handler func([]byte) error) error {
+	log.Printf("Starting consumer for topic: %s", c.reader.Config().Topic)
 	for {
 		msg, err := c.reader.ReadMessage(ctx)
 		if err != nil {

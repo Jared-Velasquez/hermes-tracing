@@ -7,6 +7,7 @@ import (
 	"ingest/config"
 
 	"google.golang.org/grpc"
+	_ "google.golang.org/grpc/encoding/gzip" // Register gzip compressor
 	otelcollogs "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	otelcolmetrics "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	otelcoltrace "go.opentelemetry.io/proto/otlp/collector/trace/v1"

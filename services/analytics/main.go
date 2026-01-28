@@ -5,6 +5,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"analytics/consumer"
 	"analytics/config"
@@ -17,13 +18,19 @@ func main() {
 
 	cfg := config.LoadConfig()
 
+	var wg sync.WaitGroup
+
 	// Start Kafka trace consumer
 	traceConsumer := consumer.NewConsumer(
 		cfg.Kafka.Broker,
 		cfg.Kafka.TracesTopic,
 		cfg.Kafka.GroupID,
 	)
-	go traceConsumer.Consume(ctx, consumer.HandleTrace)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		traceConsumer.Consume(ctx, consumer.HandleTrace)
+	}()
 
 	// Start Kafka metrics consumer
 	metricsConsumer := consumer.NewConsumer(
@@ -31,7 +38,11 @@ func main() {
 		cfg.Kafka.MetricsTopic,
 		cfg.Kafka.GroupID,
 	)
-	go metricsConsumer.Consume(ctx, consumer.HandleMetric)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		metricsConsumer.Consume(ctx, consumer.HandleMetric)
+	}()
 
 	// Start Kafka logs consumer
 	logsConsumer := consumer.NewConsumer(
@@ -39,11 +50,19 @@ func main() {
 		cfg.Kafka.LogsTopic,
 		cfg.Kafka.GroupID,
 	)
-	go logsConsumer.Consume(ctx, consumer.HandleLog)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		logsConsumer.Consume(ctx, consumer.HandleLog)
+	}()
 
 	// Block until context is cancelled
 	<-ctx.Done()
-	
+	log.Println("Shutting down...")
+
+	// Wait for all consumers to finish processing
+	wg.Wait()
+
 	// Close consumers
 	if err := traceConsumer.Close(); err != nil {
 		log.Printf("Error closing trace consumer: %v", err)
@@ -54,4 +73,5 @@ func main() {
 	if err := logsConsumer.Close(); err != nil {
 		log.Printf("Error closing logs consumer: %v", err)
 	}
+	log.Println("Shutdown complete")
 }

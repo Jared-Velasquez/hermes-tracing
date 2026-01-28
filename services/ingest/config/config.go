@@ -19,7 +19,7 @@ type KafkaConfig struct {
 func LoadConfig() *Config {
 	return &Config {
 		Kafka: KafkaConfig {
-			Broker: getEnv("KAFKA_BROKERS", "localhost:9092"),
+			Broker: getEnv("KAFKA_BROKERS", "localhost:29092"),
 			LogsTopic: getEnv("KAFKA_LOGS_TOPIC", "logs"),
 			MetricsTopic: getEnv("KAFKA_METRICS_TOPIC", "metrics"),
 			TracesTopic: getEnv("KAFKA_TRACES_TOPIC", "traces"),
