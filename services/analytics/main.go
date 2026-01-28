@@ -18,6 +18,15 @@ func main() {
 
 	cfg := config.LoadConfig()
 
+	// Initialize Elasticsearch store
+	store, err := consumer.NewStore(cfg.Elasticsearch.Addresses, cfg.Elasticsearch.Index)
+	if err != nil {
+		log.Fatalf("Failed to create Elasticsearch store: %v", err)
+	}
+
+	// Create trace handler with store
+	traceHandler := consumer.NewTraceHandler(store)
+
 	var wg sync.WaitGroup
 
 	// Start Kafka trace consumer
@@ -29,7 +38,7 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		traceConsumer.Consume(ctx, consumer.HandleTrace)
+		traceConsumer.Consume(ctx, traceHandler.Handle)
 	}()
 
 	// Start Kafka metrics consumer

@@ -26,13 +26,23 @@ func main() {
 	// Create a new gRPC server and connect OTLP services
 	grpcServer := grpc.NewServer()
 
-	traceServer := handlers.NewTraceServer(cfg)
-	metricsServer := handlers.NewMetricsServer(cfg)
-	logsServer := handlers.NewLogsServer(cfg)
+	if cfg.EnableTraces {
+		traceServer := handlers.NewTraceServer(cfg)
+		otelcoltrace.RegisterTraceServiceServer(grpcServer, traceServer)
+		log.Println("Traces endpoint enabled")
+	}
 
-	otelcoltrace.RegisterTraceServiceServer(grpcServer, traceServer)
-	otelcolmetrics.RegisterMetricsServiceServer(grpcServer, metricsServer)
-	otelcollogs.RegisterLogsServiceServer(grpcServer, logsServer)
+	if cfg.EnableMetrics {
+		metricsServer := handlers.NewMetricsServer(cfg)
+		otelcolmetrics.RegisterMetricsServiceServer(grpcServer, metricsServer)
+		log.Println("Metrics endpoint enabled")
+	}
+
+	if cfg.EnableLogs {
+		logsServer := handlers.NewLogsServer(cfg)
+		otelcollogs.RegisterLogsServiceServer(grpcServer, logsServer)
+		log.Println("Logs endpoint enabled")
+	}
 
 	log.Println("Starting OTLP gRPC server on :4317")
 

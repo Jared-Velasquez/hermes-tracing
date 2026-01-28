@@ -36,7 +36,6 @@ func (s *TraceServer) Export(ctx context.Context, req *otelcoltrace.ExportTraceS
 
 
 	// 4. Return successful response to client
-	log.Println("Trace Export Request: ", req)
 
 	return &otelcoltrace.ExportTraceServiceResponse{}, nil
 }
