@@ -44,3 +44,45 @@ type ServiceGraph struct {
 	Edges     []ServiceEdge  `json:"edges"`
 	CreatedAt time.Time      `json:"created_at"`
 }
+
+type DBTarget struct {
+	System 		 string
+	DatabaseName string
+}
+
+func (db DBTarget) String() string {
+	return db.System + ":" + db.DatabaseName
+}
+
+func (db DBTarget) IsEmpty() bool {
+	return db.System == ""
+}
+
+type MessagingTarget struct {
+	System   		string
+	DestinationName string
+}
+
+func (mt MessagingTarget) String() string {
+	return mt.System + ":" + mt.DestinationName
+}
+
+func (mt MessagingTarget) IsEmpty() bool {
+	return mt.System == ""
+}
+
+type SyncCallTarget struct {
+	// Is protocol the right word?
+	Protocol 	string // Example: http, grpc, thrift
+	Source 	 	string // Example: service.name (internal)
+	Destination string // Example: service.name (internal), api.stripe.com (external)
+}
+
+func (sct SyncCallTarget) String() string {
+	// TODO: how is this related with ServiceNodes?
+	return sct.Source + "->" + sct.Destination
+}
+
+func (sct SyncCallTarget) IsEmpty() bool {
+	return sct.Source == "" && sct.Destination == ""
+}

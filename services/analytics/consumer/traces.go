@@ -31,6 +31,7 @@ func (h *TraceHandler) Handle(data []byte) error {
 	// ResourceSpans -> ScopeSpans -> Spans
 	// Docs: https://pkg.go.dev/go.opentelemetry.io/proto/otlp@v1.9.0/collector/trace/v1
 	for _, resourceSpan := range req.GetResourceSpans() {
+		// TODO: also ingest resource attributes
 		resource := resourceSpan.GetResource()
 
 		for _, scopeSpan := range resourceSpan.GetScopeSpans() {
