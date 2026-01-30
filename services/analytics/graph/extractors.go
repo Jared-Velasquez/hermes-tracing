@@ -44,6 +44,18 @@ func extractAttribute(m map[string]interface{}, keys ...string) string {
 	return ""
 }
 
+func extractServiceName(span types.Span) string {
+	// Extract service.name from resource attributes
+	// https://opentelemetry.io/docs/specs/semconv/registry/attributes/service/
+
+	// TODO: if service.name is not specified, SDK falls back to "unknown_service"
+	// concatenated with process.executable.name (if available). Should I handle
+	// this case differently?
+
+	serviceName := extractAttribute(span.Attributes, AttrPeerService)
+	return serviceName
+}
+
 func extractDBTarget(span types.Span) types.DBTarget {
 	// Extract DB system name and database from attributes:
 	// https://opentelemetry.io/docs/specs/semconv/registry/attributes/db/
