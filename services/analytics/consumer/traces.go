@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"log"
+	"analytics/store"
 
 	commonv1 "go.opentelemetry.io/proto/otlp/common/v1"
 	otelcoltrace "go.opentelemetry.io/proto/otlp/collector/trace/v1"
@@ -11,10 +12,10 @@ import (
 )
 
 type TraceHandler struct {
-	store *Store
+	store *store.Store
 }
 
-func NewTraceHandler(store *Store) *TraceHandler {
+func NewTraceHandler(store *store.Store) *TraceHandler {
 	return &TraceHandler{store: store}
 }
 
