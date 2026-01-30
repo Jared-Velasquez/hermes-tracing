@@ -83,9 +83,11 @@ func (gb *GraphBuilder) constructGraph(spans []types.Span) (*types.ServiceGraph,
 	return nil, nil
 }
 
-func extractDBTarget(attrs map[string]interface{}) types.DBTarget {
+func extractDBTarget(span types.Span) types.DBTarget {
 	// Extract DB system name and database from attributes:
 	// https://opentelemetry.io/docs/specs/semconv/registry/attributes/db/
+
+	attrs := span.Attributes
 
 	systemName := ""
 	databaseName := ""
@@ -104,9 +106,11 @@ func extractDBTarget(attrs map[string]interface{}) types.DBTarget {
 	return types.DBTarget{System: systemName, DatabaseName: databaseName}
 }
 
-func extractMessagingTarget(attrs map[string]interface{}) types.MessagingTarget {
+func extractMessagingTarget(span types.Span) types.MessagingTarget {
 	// Extract messaging system name and destination from attributes:
 	// https://opentelemetry.io/docs/specs/semconv/registry/attributes/messaging
+
+	attrs := span.Attributes
 
 	systemName := ""
 	destinationName := ""
@@ -127,33 +131,33 @@ func extractMessagingTarget(attrs map[string]interface{}) types.MessagingTarget 
 // Internal calls: connects two ServiceNodes within the system
 // External calls: connects a ServiceNode to an external system (e.g. third-party API)
 
-func extractHTTPTarget(attrs map[string]interface{}) types.SyncCallTarget {
+func extractHTTPTarget(span types.Span) types.SyncCallTarget {
 	// Extract HTTP target from attributes:
 	// HTTP: https://opentelemetry.io/docs/specs/semconv/registry/attributes/http/
 	// Client (source): https://opentelemetry.io/docs/specs/semconv/registry/attributes/client/
 	// Server (destination): https://opentelemetry.io/docs/specs/semconv/registry/attributes/server/
 
-	// TODO: need both span and resource attributes to get service.name for source/destination?
+	spanAttrs := span.Attributes
+	resourceAttrs := span.Resource
 
 	destination := ""
 	source := ""
 
-	if peer, ok := attrs["service.peer.name"].(string); ok && peer != "" { // Current
+	// Extract destination from span attributes
+	if peer, ok := spanAttrs["peer.service"].(string); ok && peer != "" {
 		destination = peer
-	} else if peer, ok := attrs["peer.service"].(string); ok && peer != "" { // Legacy/deprecated
-		destination = peer
-	} else if serverAddr, ok := attrs["server.address"].(string); ok && serverAddr != "" { // Current (for extracting address)
+	} else if serverAddr, ok := spanAttrs["server.address"].(string); ok && serverAddr != "" {
 		destination = serverAddr
-	} else if httpHost, ok := attrs["http.host"].(string); ok && httpHost != "" { // Legacy/deprecated (for extracting address); TODO: docs don't make this clear if httpHost is client or server
+	} else if httpHost, ok := spanAttrs["http.host"].(string); ok && httpHost != "" { // Legacy/deprecated
 		destination = httpHost
 	}
 
 	// Fallback: parse from URL (current: url.full, legacy: http.url)
 	if destination == "" {
 		urlStr := ""
-		if u, ok := attrs["url.full"].(string); ok && u != "" {
+		if u, ok := spanAttrs["url.full"].(string); ok && u != "" {
 			urlStr = u
-		} else if u, ok := attrs["http.url"].(string); ok && u != "" {
+		} else if u, ok := spanAttrs["http.url"].(string); ok && u != "" {
 			urlStr = u
 		}
 		if urlStr != "" {
@@ -161,9 +165,10 @@ func extractHTTPTarget(attrs map[string]interface{}) types.SyncCallTarget {
 		}
 	}
 
-	if service, ok := attrs["service.name"].(string); ok && service != "" { // Current
+	// Extract source from resource attributes (service.name is a resource attribute)
+	if service, ok := resourceAttrs["service.name"].(string); ok && service != "" {
 		source = service
-	} else if clientAddr, ok := attrs["client.address"].(string); ok && clientAddr != "" { // Current (for extracting address)
+	} else if clientAddr, ok := spanAttrs["client.address"].(string); ok && clientAddr != "" {
 		source = clientAddr
 	}
 
@@ -178,39 +183,38 @@ func extractHTTPTarget(attrs map[string]interface{}) types.SyncCallTarget {
 	}
 }
 
-func extractRPCTarget(attrs map[string]interface{}) types.SyncCallTarget {
+func extractRPCTarget(span types.Span) types.SyncCallTarget {
 	// Extract RPC target from attributes:
 	// RPC: https://opentelemetry.io/docs/specs/semconv/registry/attributes/rpc/
 	// Client (source): https://opentelemetry.io/docs/specs/semconv/registry/attributes/client/
 	// Server (destination): https://opentelemetry.io/docs/specs/semconv/registry/attributes/server/
 
-	// TODO: need both span and resource attributes to get service.name for source/destination?
+	spanAttrs := span.Attributes
+	resourceAttrs := span.Resource
 
 	destination := ""
 	source := ""
 	protocol := ""
 
 	// Extract RPC system (grpc, thrift, etc.)
-	if rpcSystem, ok := attrs["rpc.system.name"].(string); ok && rpcSystem != "" { // Current
-		protocol = rpcSystem
-	} else if rpcSystem, ok := attrs["rpc.system"].(string); ok && rpcSystem != "" { // Legacy/deprecated
+	if rpcSystem, ok := spanAttrs["rpc.system"].(string); ok && rpcSystem != "" {
 		protocol = rpcSystem
 	} else {
 		// No rpc.system means this isn't an RPC span
 		return types.SyncCallTarget{}
 	}
 
-	// Extract service destination
-	if peer, ok := attrs["peer.service"].(string); ok && peer != "" { // Current
+	// Extract destination from span attributes
+	if peer, ok := spanAttrs["peer.service"].(string); ok && peer != "" {
 		destination = peer
-	} else if serverAddr, ok := attrs["server.address"].(string); ok && serverAddr != "" { // Current (for extracting address)
+	} else if serverAddr, ok := spanAttrs["server.address"].(string); ok && serverAddr != "" {
 		destination = serverAddr
 	}
 
-	// Extract service source
-	if service, ok := attrs["service.name"].(string); ok && service != "" { // Current
+	// Extract source from resource attributes (service.name is a resource attribute)
+	if service, ok := resourceAttrs["service.name"].(string); ok && service != "" {
 		source = service
-	} else if clientAddr, ok := attrs["client.address"].(string); ok && clientAddr != "" { // Current (for extracting address)
+	} else if clientAddr, ok := spanAttrs["client.address"].(string); ok && clientAddr != "" {
 		source = clientAddr
 	}
 
@@ -240,17 +244,17 @@ func extractHostFromURL(urlStr string) string {
 		urlStr = urlStr[:idx]
 	}
 
+	// Remove userinfo if present
+	if idx := strings.Index(urlStr, "@"); idx != -1 {
+		urlStr = urlStr[idx+1:]
+	}
+
 	// Remove port
 	if idx := strings.LastIndex(urlStr, ":"); idx != -1 {
 		// Make sure it's a port, not part of IPv6
 		if !strings.Contains(urlStr[idx:], "]") {
 			urlStr = urlStr[:idx]
 		}
-	}
-
-	// Remove userinfo if present
-	if idx := strings.Index(urlStr, "@"); idx != -1 {
-		urlStr = urlStr[idx+1:]
 	}
 
 	return urlStr
