@@ -43,6 +43,16 @@ func (h *TraceHandler) Handle(data []byte) error {
 					"parent_span_id": hex.EncodeToString(span.GetParentSpanId()),
 					"name":           span.GetName(),
 					"kind":           span.GetKind().String(),
+					"links": 		  func() []map[string]string {
+						links := make([]map[string]string, 0, len(span.GetLinks()))
+						for _, link := range span.GetLinks() {
+							links = append(links, map[string]string{
+								"trace_id": hex.EncodeToString(link.GetTraceId()),
+								"span_id":  hex.EncodeToString(link.GetSpanId()),
+							})
+						}
+						return links
+					}(),
 					"start_time":     span.GetStartTimeUnixNano(),
 					"end_time":       span.GetEndTimeUnixNano(),
 					"status":         span.GetStatus().GetCode().String(),

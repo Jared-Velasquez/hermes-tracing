@@ -5,18 +5,25 @@ import (
 )
 
 // Span document stored in Elasticsearch
+// How to handle Span Links?
 type Span struct {
 	TraceID      string                 `json:"trace_id"`
 	SpanID       string                 `json:"span_id"`
 	ParentSpanID string                 `json:"parent_span_id"`
 	Name         string                 `json:"name"`
 	Kind         string                 `json:"kind"`
+	Links        []SpanLink             `json:"links"`
 	StartTime    uint64                 `json:"start_time"`
 	EndTime      uint64                 `json:"end_time"`
 	Status       string                 `json:"status"`
 	Attributes   map[string]interface{} `json:"attributes"`
 	Resource     map[string]interface{} `json:"resource"`
 	ScopeName    string                 `json:"scope_name"`
+}
+
+type SpanLink struct {
+	TraceID string `json:"trace_id"`
+	SpanID  string `json:"span_id"`
 }
 
 type ServiceNode struct {

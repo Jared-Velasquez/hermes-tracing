@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"analytics/consumer"
 	"analytics/config"
+	"analytics/store"
 )
 
 func main() {
@@ -19,7 +20,7 @@ func main() {
 	cfg := config.LoadConfig()
 
 	// Initialize Elasticsearch store
-	store, err := consumer.NewStore(cfg.Elasticsearch.Addresses, cfg.Elasticsearch.Index)
+	store, err := store.NewStore(cfg.Elasticsearch.Addresses, cfg.Elasticsearch.Index)
 	if err != nil {
 		log.Fatalf("Failed to create Elasticsearch store: %v", err)
 	}
