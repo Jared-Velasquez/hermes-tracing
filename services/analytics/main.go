@@ -10,6 +10,8 @@ import (
 	"analytics/consumer"
 	"analytics/config"
 	"analytics/store"
+	"analytics/graph"
+	"analytics/handlers"
 )
 
 func main() {
@@ -24,6 +26,31 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create Elasticsearch store: %v", err)
 	}
+
+	// Initialize graph builder
+	graphBuilder := graph.NewGraphBuilder(store)
+
+	// Initialize analytics API handler
+	analyticsHandler := handlers.NewAnalyticsHandler(graphBuilder)
+
+	// Setup HTTP server
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/graph", analyticsHandler.ConstructServiceGraph)
+
+	server := &http.Server{
+		Addr:    cfg.Server.Address + ":" + cfg.Server.Port,
+		Handler: mux,
+	}
+
+	// Start HTTP server
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		log.Printf("Starting analytics server on %s:%s", cfg.Server.Address, cfg.Server.Port)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Failed to start server: %v", err)
+		}
+	}()
 
 	// Create trace handler with store
 	traceHandler := consumer.NewTraceHandler(store)
@@ -69,6 +96,11 @@ func main() {
 	// Block until context is cancelled
 	<-ctx.Done()
 	log.Println("Shutting down...")
+
+	// Shutdown HTTP server
+	if err := server.Shutdown(context.Background()); err != nil {
+		log.Printf("HTTP server Shutdown: %v", err)
+	}
 
 	// Wait for all consumers to finish processing
 	wg.Wait()

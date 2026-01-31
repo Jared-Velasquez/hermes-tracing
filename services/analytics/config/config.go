@@ -5,8 +5,9 @@ import (
 )
 
 type Config struct {
-	Kafka KafkaConfig
+	Kafka 		  KafkaConfig
 	Elasticsearch ElasticsearchConfig
+	Server 		  AnalyticsConfig
 }
 
 type KafkaConfig struct {
@@ -22,6 +23,11 @@ type ElasticsearchConfig struct {
 	Index     string
 }
 
+type AnalyticsConfig struct {
+	Address string // HTTP server address
+	Port	string // HTTP server port
+}
+
 func LoadConfig() *Config {
 	return &Config {
 		Kafka: KafkaConfig {
@@ -34,6 +40,10 @@ func LoadConfig() *Config {
 		Elasticsearch: ElasticsearchConfig {
 			Addresses: []string{getEnv("ES_ADDRESS", "http://localhost:9200")},
 			Index:     getEnv("ES_INDEX", "traces"),
+		},
+		Server: AnalyticsConfig {
+			Address: getEnv("ANALYTICS_SERVER_ADDRESS", "0.0.0.0"),
+			Port:    getEnv("ANALYTICS_SERVER_PORT", "8080"),
 		},
 	}
 }
